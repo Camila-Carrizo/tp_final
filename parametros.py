@@ -37,7 +37,7 @@ def crear_parametros(**overrides):
         # Si H tiene valor → se usan H y las colas como en el enunciado.
         # P NUNCA lo carga el usuario: siempre se calcula (U(0; H)).
         "H": 5,
-        "direccion": "sube",  # True = sube, False = baja
+        "direccion_ascensor": "sube", 
         "cola_bajan": 5,
         "cola_suben": 3,
         # Semilla opcional

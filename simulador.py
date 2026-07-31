@@ -88,8 +88,8 @@ def armar_estado_inicial(parametros):
             "P": None,
             "PROXIMA_LLEGADA_ASCENSOR": 0.0 + proxima_llegada_ascensor,
             "PROXIMA_LLEGADA_PASAJERO": 0.0 + proxima_llegada_pasajero,
-            "DIRECCION": "sube",
-            "ESTADO": "en_movimiento",
+            "DIRECCION_ASCENSOR": "sube",
+            "ESTADO_ASCENSOR": "en_movimiento",
             "ESPACIO_DISPONIBLE": parametros["capacidad"],
             "FIN_DESCENSO": None,
             "FIN_ASCENSO": None,
@@ -106,12 +106,12 @@ def armar_estado_inicial(parametros):
     p = uniforme_entero(0, h) if h > 0 else None
     cola_baja = parametros["cola_bajan"]
     cola_sube = parametros["cola_suben"]
-    direccion = parametros["direccion"]
+    direccion_ascensor = parametros["direccion_ascensor"]
 
     fin_descenso = None
     fin_ascenso = None
     fin_espera = None
-    estado = None
+    estado_ascensor = None
     h_actual = h
     # Mientras aún no bajaron: ocupados = H
     espacio = parametros["capacidad"] - h
@@ -122,21 +122,21 @@ def armar_estado_inicial(parametros):
         # Hay descenso: primero se programa Fin Descenso.
         # El ascenso se verá en ese evento (después).
         fin_descenso = 0.0 + p * parametros["tiempo_descenso_d"]
-        estado = "esperando_descenso"
+        estado_ascensor = "esperando_descenso"
     else:
         # P = 0 → no hay descenso: se sigue directo con ascenso,
         # solo si hay cola en la dirección del ascensor y espacio > 0.
         # Espacio disponible = capacidad - (H - P)  (con P=0 → capacidad - H)
         espacio = parametros["capacidad"] - (h - p)
-        cola_dir = cola_sube if direccion == "sube" else cola_baja
+        cola_dir = cola_sube if direccion_ascensor == "sube" else cola_baja
 
         if cola_dir > 0 and espacio > 0:
             cuantos_suben = min(cola_dir, espacio)
             fin_ascenso = 0.0 + cuantos_suben * parametros["tiempo_ascenso_a"]
-            estado = "esperando_ascenso"
+            estado_ascensor = "esperando_ascenso"
 
             # Salen de la cola al abordar (como en el Tp.ods)
-            if direccion == "sube":
+            if direccion_ascensor == "sube":
                 cola_sube -= cuantos_suben
             else:
                 cola_baja -= cuantos_suben
@@ -148,7 +148,7 @@ def armar_estado_inicial(parametros):
             # Efecto de "fin espera" sin esperar E ni acumular detención:
             # se programa la próxima llegada del ascensor.
             inicio_detencion = None
-            estado = "en_movimiento"
+            estado_ascensor = "en_movimiento"
             proxima_llegada_ascensor = 0.0 + uniforme(
                 parametros["viaje_min"],
                 parametros["viaje_max"],
@@ -161,8 +161,8 @@ def armar_estado_inicial(parametros):
         "P": p,
         "PROXIMA_LLEGADA_ASCENSOR": proxima_llegada_ascensor,
         "PROXIMA_LLEGADA_PASAJERO": 0.0 + proxima_llegada_pasajero,
-        "DIRECCION": direccion,
-        "ESTADO": estado,
+        "DIRECCION_ASCENSOR": direccion_ascensor,
+        "ESTADO_ASCENSOR": estado_ascensor,
         "ESPACIO_DISPONIBLE": espacio,
         "FIN_DESCENSO": fin_descenso,
         "FIN_ASCENSO": fin_ascenso,
