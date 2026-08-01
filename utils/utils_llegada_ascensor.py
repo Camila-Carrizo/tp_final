@@ -48,6 +48,7 @@ def simular_llegada_ascensor(estado_anterior, parametros, reloj):
     }
 
 def calcular_cola(estado_ascensor, direccion_ascensor, espacio_disponible, cola_baja, cola_sube):
+    cuantos_suben = 0
     """
     Si el estado_ascensor es esperando_ascenso, bajan de la cola de esa dirección
     la cantidad que realmente puede subir: min(cola, espacio_disponible).
@@ -55,11 +56,11 @@ def calcular_cola(estado_ascensor, direccion_ascensor, espacio_disponible, cola_
     Devuelve: (cola_baja, cola_sube)
     """
     if estado_ascensor != "esperando_ascenso":
-        return cola_baja, cola_sube
+        return cola_baja, cola_sube, cuantos_suben
 
     if direccion_ascensor == "sube":
         cuantos_suben = min(cola_sube, espacio_disponible)
-        return cola_baja, cola_sube - cuantos_suben
+        return cola_baja, cola_sube - cuantos_suben, cuantos_suben
 
     cuantos_suben = min(cola_baja, espacio_disponible)
     return cola_baja - cuantos_suben, cola_sube, cuantos_suben
