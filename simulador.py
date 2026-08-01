@@ -115,16 +115,19 @@ def armar_estado_inicial(parametros):
     proxima_llegada_ascensor = None
     inicio_detencion = 0.0  # se detiene (salvo el caso "no para" de abajo)
 
-    if p > 0:
+    if p is not None and p > 0:
         # Hay descenso: primero se programa Fin Descenso.
         # El ascenso se verá en ese evento (después).
         fin_descenso = 0.0 + p * parametros["tiempo_descenso_d"]
         estado_ascensor = "esperando_descenso"
     else:
-        # P = 0 → no hay descenso: se sigue directo con ascenso,
+        # P = 0 o None → no hay descenso: se sigue directo con ascenso,
         # solo si hay cola en la dirección del ascensor y espacio > 0.
         # Espacio disponible = capacidad - (H - P)  (con P=0 → capacidad - H)
-        espacio = parametros["capacidad"] - (h - p)
+        if p is None:
+            espacio = parametros["capacidad"] - h
+        else:   
+            espacio = parametros["capacidad"] - (h - p)
         cola_dir = cola_sube if direccion_ascensor == "sube" else cola_baja
 
         if cola_dir > 0 and espacio > 0:

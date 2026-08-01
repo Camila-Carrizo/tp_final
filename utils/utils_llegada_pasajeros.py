@@ -42,21 +42,21 @@ def calcular_cola_tiempos_estados(espacio_disponible, cola_baja, cola_sube, fin_
     """
     Determina si el pasajero accede al ascensor.
     """
-    direccion_pasajero, accedio_al_ascensor = accedio_al_ascensor(direccion_ascensor, espacio_disponible)
+    direccion_pasajero, accede = accedio_al_ascensor(direccion_ascensor, espacio_disponible)
 
     #No puede subir en el momento y va a cola de espera
-    if not accedio_al_ascensor or estado_ascensor in ["en_movimiento", "esperando_descenso"]:
+    if not accede or estado_ascensor in ["en_movimiento", "esperando_descenso"]:
         if direccion_pasajero == "baja":
             cola_baja = cola_baja + 1
         else:
             cola_sube = cola_sube + 1
 
     #recalculo de tiempos cuando SI PUEDE subir en el momento
-    if estado_ascensor == "esperando" and accedio_al_ascensor:
+    if estado_ascensor == "esperando" and accede:
         fin_espera = reloj + parametros["tiempo_espera_e"]
         estado_ascensor = "esperando_ascenso"
-    elif estado_ascensor == "esperando_ascenso" and accedio_al_ascensor:
-        fin_ascenso = reloj + (fin_ascenso - reloj) + parametros["tiempo_espera_e"]	
+    elif estado_ascensor == "esperando_ascenso" and accede:
+        fin_ascenso = reloj + (fin_ascenso - reloj) + parametros["tiempo_espera_a"]	
 
     return cola_baja, cola_sube, fin_espera, fin_ascenso, estado_ascensor
 

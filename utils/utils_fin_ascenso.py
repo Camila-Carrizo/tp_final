@@ -12,10 +12,10 @@ def simular_fin_ascenso(estado_anterior, parametros, reloj):
     estado_ascensor = "esperando"
     proxima_llegada_ascensor = estado_anterior["PROXIMA_LLEGADA_ASCENSOR"]
     proxima_llegada_pasajero = estado_anterior["PROXIMA_LLEGADA_PASAJERO"]
-    espacio_disponible = parametros["capacidad"] - (h - p) if p else 6 
+    espacio_disponible = parametros["capacidad"] - (h - p) if p  is not None else parametros["capacidad"]
     fin_descenso = None
     fin_ascenso = None
-    fin_espera = reloj + 5
+    fin_espera = reloj + parametros["tiempo_espera_e"]
     inicio_detencion = estado_anterior["INICIO_DETENCION"]
     cola_baja = estado_anterior["COLA_BAJA"]
     cola_sube = estado_anterior["COLA_SUBE"]

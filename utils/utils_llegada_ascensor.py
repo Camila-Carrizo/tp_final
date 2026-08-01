@@ -11,21 +11,21 @@ def simular_llegada_ascensor(estado_anterior, parametros, reloj):
     # Si H = 0 no hay nadie a bordo → P no se calcula
     p = uniforme_entero(0, h) if h > 0 else None
     direccion_ascensor = estado_anterior["DIRECCION_ASCENSOR"]
-    proxima_llegada_ascensor = reloj + uniforme(parametros["viaje_min"], parametros["viaje_max"]) if estado_ascensor == "en_movimiento" else estado_anterior["PROXIMA_LLEGADA_ASCENSOR"]
     proxima_llegada_pasajero = estado_anterior["PROXIMA_LLEGADA_PASAJERO"]
     espacio_disponible = parametros["capacidad"] - h
     estado_ascensor = definir_estado(p, espacio_disponible, estado_anterior["COLA_BAJA"], estado_anterior["COLA_SUBE"], estado_anterior["DIRECCION_ASCENSOR"])
-    fin_descenso = reloj + p * parametros["tiempo_descenso_d"] if estado_ascensor == "esperando_descenso" and p else None
-    fin_ascenso = reloj + p * parametros["tiempo_ascenso_a"] if estado_ascensor == "esperando_ascenso" and p else None
+    proxima_llegada_ascensor = reloj + uniforme(parametros["viaje_min"], parametros["viaje_max"]) if estado_ascensor == "en_movimiento" else estado_anterior["PROXIMA_LLEGADA_ASCENSOR"]
+    fin_descenso = reloj + p * parametros["tiempo_descenso_d"] if estado_ascensor == "esperando_descenso" and p is not None else None
     fin_espera = None
     inicio_detencion = reloj if estado_ascensor != "en_movimiento" else None
-    cola_baja, cola_sube = calcular_cola(
-        estado_anterior["ESTADO_ASCENSOR"],
+    cola_baja, cola_sube, cuantos_suben = calcular_cola(
+        estado_ascensor,
         estado_anterior["DIRECCION_ASCENSOR"],
         espacio_disponible,
         estado_anterior["COLA_BAJA"],
         estado_anterior["COLA_SUBE"],
     )
+    fin_ascenso = reloj + parametros["tiempo_ascenso_a"] * cuantos_suben if estado_ascensor == "esperando_ascenso" and p is not None else None
     acumulador_permanencia = estado_anterior["ACUMULADOR_PERMANENCIA"] + reloj - estado_anterior["RELOJ"] if estado_ascensor == "en_movimiento" else estado_anterior["ACUMULADOR_PERMANENCIA"]
 
     return {
@@ -62,7 +62,7 @@ def calcular_cola(estado_ascensor, direccion_ascensor, espacio_disponible, cola_
         return cola_baja, cola_sube - cuantos_suben
 
     cuantos_suben = min(cola_baja, espacio_disponible)
-    return cola_baja - cuantos_suben, cola_sube
+    return cola_baja - cuantos_suben, cola_sube, cuantos_suben
 
 
 def definir_estado(p, espacio_disponible, cola_baja, cola_sube, direccion_ascensor):

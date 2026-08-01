@@ -14,7 +14,7 @@ def simular_fin_espera(estado_anterior, parametros, reloj):
     estado_ascensor = "en_movimiento"
     proxima_llegada_ascensor = reloj + uniforme(parametros["viaje_min"], parametros["viaje_max"])
     proxima_llegada_pasajero = estado_anterior["PROXIMA_LLEGADA_PASAJERO"]
-    espacio_disponible = 6
+    espacio_disponible = parametros["capacidad"]
     fin_descenso = None
     fin_ascenso = None
     fin_espera = None
@@ -42,22 +42,5 @@ def simular_fin_espera(estado_anterior, parametros, reloj):
         "ACUMULADOR_PERMANENCIA": acumulador_permanencia,
     }
 
-def calcular_numero_de_ascensos(p,cola_baja, cola_sube, espacio_disponible, direccion_ascensor):
-    if p is None or p == 0 or espacio_disponible == 0:
-        return None
-    elif direccion_ascensor == "sube":
-        return min(cola_sube, espacio_disponible)
-    return min(cola_baja, espacio_disponible)
 
-def calcular_fin_espera(p, reloj, cola_baja, cola_sube, espacio_disponible, direccion_ascensor):
-    nro_ascensos = calcular_numero_de_ascensos(cola_baja, cola_sube, espacio_disponible, direccion_ascensor)
-    if nro_ascensos is None:
-        return None
-    return reloj + 5
-
-def definir_estado(espacio_disponible, cola_baja, cola_sube, direccion_ascensor):
-    nro_ascensos = calcular_numero_de_ascensos(cola_baja, cola_sube, espacio_disponible, direccion_ascensor)
-    if nro_ascensos is not None:
-        return "esperando_ascenso"
-    return "esperando"
 
