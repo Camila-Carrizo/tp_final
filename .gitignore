@@ -1,0 +1,9 @@
+# Documentos / planillas
+*.pdf
+*.md
+*.ods
+*.xlsx
+*.xls
+*.xlsm
+*.xlsb
+*.csv

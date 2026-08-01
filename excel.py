@@ -10,11 +10,16 @@ from __future__ import annotations
 from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
 
-# Orden: RND + valor crudo al lado de cada tiempo programado
+# Orden de columnas (planilla) — grupos = mismo color de encabezado
 COLUMNAS = [
     "EVENTO",
     "RELOJ",
+    "RND_LLEGADA_ASCENSOR",
+    "LLEGADA_ASCENSOR",
+    "PROXIMA_LLEGADA_ASCENSOR",
     "RND_H",
     "H",
     "RND_P",
@@ -22,22 +27,65 @@ COLUMNAS = [
     "RND_LLEGADA_PASAJERO",
     "LLEGADA_PASAJERO",
     "PROXIMA_LLEGADA_PASAJERO",
-    "RND_LLEGADA_ASCENSOR",
-    "LLEGADA_ASCENSOR",
-    "PROXIMA_LLEGADA_ASCENSOR",
     "RND_DIRECCION_PASAJERO",
     "DIRECCION_PASAJERO",
     "DIRECCION_ASCENSOR",
     "ESTADO_ASCENSOR",
     "ESPACIO_DISPONIBLE",
+    "INICIO_DETENCION",
     "FIN_DESCENSO",
     "FIN_ASCENSO",
     "FIN_ESPERA",
-    "INICIO_DETENCION",
     "COLA_BAJA",
     "COLA_SUBE",
     "ACUMULADOR_PERMANENCIA",
 ]
+
+# Título visible en Excel/UI (la clave interna sigue siendo la de COLUMNAS)
+TITULOS_COLUMNA = {
+    "RELOJ": "RELOJ (seg)",
+}
+
+
+def titulo_columna(clave: str) -> str:
+    return TITULOS_COLUMNA.get(clave, clave)
+
+
+def caracteres_columna(clave: str) -> int:
+    """Ancho en caracteres para que el encabezado se vea completo."""
+    return max(len(titulo_columna(clave)), 10)
+
+
+# Color por columna (encabezado). Mismo hex = mismo grupo.
+COLORES_ENCABEZADO = {
+    "EVENTO": "D9D2E9",  
+    "RELOJ": "CFE2F3",  
+    "RND_LLEGADA_ASCENSOR": "D9EAD3",  
+    "LLEGADA_ASCENSOR": "D9EAD3",
+    "PROXIMA_LLEGADA_ASCENSOR": "D9EAD3",
+    "RND_H": "FCE5CD",  
+    "H": "FCE5CD",
+    "RND_P": "E6B8AF",  
+    "P": "E6B8AF",
+    "RND_LLEGADA_PASAJERO": "D0E0E3",  
+    "LLEGADA_PASAJERO": "D0E0E3",
+    "PROXIMA_LLEGADA_PASAJERO": "D0E0E3",
+    "RND_DIRECCION_PASAJERO": "D0E0E3",
+    "DIRECCION_PASAJERO": "D0E0E3",
+    "DIRECCION_ASCENSOR": "EAD1DC",  
+    "ESTADO_ASCENSOR": "EAD1DC",
+    "ESPACIO_DISPONIBLE": "EAD1DC",
+    "INICIO_DETENCION": "EAD1DC",
+    "FIN_DESCENSO": "F4CCCC",  
+    "FIN_ASCENSO": "FFF2CC",  
+    "FIN_ESPERA": "B6D7A8",  
+    "COLA_BAJA": "B4C6E7",  
+    "COLA_SUBE": "B4C6E7",
+    "ACUMULADOR_PERMANENCIA": "EFEFEF",  
+}
+
+
+_COLORES_TEXTO_OSCURO = set(COLORES_ENCABEZADO.values())
 
 
 class EscritorExcel:
@@ -51,7 +99,24 @@ class EscritorExcel:
         self.wb = Workbook()
         self.ws = self.wb.active
         self.ws.title = "Simulacion"
-        self.ws.append(COLUMNAS)
+        self.ws.append([titulo_columna(c) for c in COLUMNAS])
+        self._estilo_encabezados()
+        self._ajustar_anchos()
+
+    def _estilo_encabezados(self) -> None:
+        for idx, nombre in enumerate(COLUMNAS, start=1):
+            celda = self.ws.cell(row=1, column=idx)
+            color = COLORES_ENCABEZADO.get(nombre, "1F4E79")
+            celda.fill = PatternFill("solid", fgColor=color)
+            texto = "000000" if color in _COLORES_TEXTO_OSCURO else "FFFFFF"
+            celda.font = Font(color=texto, bold=True)
+            celda.alignment = Alignment(horizontal="center", wrap_text=False)
+
+    def _ajustar_anchos(self) -> None:
+        """Cada columna tan ancha como su encabezado (+ margen)."""
+        for idx, nombre in enumerate(COLUMNAS, start=1):
+            letra = get_column_letter(idx)
+            self.ws.column_dimensions[letra].width = caracteres_columna(nombre) + 2
 
     def agregar_fila(self, estado: dict) -> None:
         self.ws.append([_celda(estado.get(col)) for col in COLUMNAS])
@@ -73,7 +138,11 @@ def leer_filas(ruta_archivo: str | Path) -> list[dict]:
     wb.close()
     if not filas:
         return []
-    encabezados = [str(h) if h is not None else "" for h in filas[0]]
+    titulo_a_clave = {titulo_columna(c): c for c in COLUMNAS}
+    encabezados = []
+    for h in filas[0]:
+        texto = str(h) if h is not None else ""
+        encabezados.append(titulo_a_clave.get(texto, texto))
     return [dict(zip(encabezados, fila)) for fila in filas[1:]]
 
 
