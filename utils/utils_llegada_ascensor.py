@@ -1,21 +1,50 @@
-from distribuciones import uniforme_entero, exponencial, uniforme
+from distribuciones import uniforme_entero, uniforme, truncar, campos_aleatorios_vacios
 
 
 def simular_llegada_ascensor(estado_anterior, parametros, reloj):
     """
     Simula la llegada de un ascensor.
+    Sorteos de este evento: RND_H/H, RND_P/P, y si no para: RND viaje.
     """
     evento = "llegada_ascensor"
     reloj = estado_anterior["PROXIMA_LLEGADA_ASCENSOR"]
-    h = uniforme_entero(0, parametros["capacidad"])
-    # Si H = 0 no hay nadie a bordo → P no se calcula
-    p = uniforme_entero(0, h) if h > 0 else None
+    aleatorios = campos_aleatorios_vacios()
+
+    rnd_h, h = uniforme_entero(0, parametros["capacidad"])
+    aleatorios["RND_H"] = rnd_h
+
+    rnd_p, p = (None, None)
+    if h > 0:
+        rnd_p, p = uniforme_entero(0, h)
+    aleatorios["RND_P"] = rnd_p
+
     direccion_ascensor = estado_anterior["DIRECCION_ASCENSOR"]
     proxima_llegada_pasajero = estado_anterior["PROXIMA_LLEGADA_PASAJERO"]
     espacio_disponible = parametros["capacidad"] - h
-    estado_ascensor = definir_estado(p, espacio_disponible, estado_anterior["COLA_BAJA"], estado_anterior["COLA_SUBE"], estado_anterior["DIRECCION_ASCENSOR"])
-    proxima_llegada_ascensor = reloj + uniforme(parametros["viaje_min"], parametros["viaje_max"]) if estado_ascensor == "en_movimiento" else estado_anterior["PROXIMA_LLEGADA_ASCENSOR"]
-    fin_descenso = reloj + p * parametros["tiempo_descenso_d"] if estado_ascensor == "esperando_descenso" and p is not None else None
+    estado_ascensor = definir_estado(
+        p,
+        espacio_disponible,
+        estado_anterior["COLA_BAJA"],
+        estado_anterior["COLA_SUBE"],
+        estado_anterior["DIRECCION_ASCENSOR"],
+    )
+
+    if estado_ascensor == "en_movimiento":
+        rnd_viaje, llegada_ascensor = uniforme(
+            parametros["viaje_min"],
+            parametros["viaje_max"],
+        )
+        aleatorios["RND_LLEGADA_ASCENSOR"] = rnd_viaje
+        aleatorios["LLEGADA_ASCENSOR"] = llegada_ascensor
+        proxima_llegada_ascensor = truncar(reloj + llegada_ascensor, 2)
+    else:
+        proxima_llegada_ascensor = estado_anterior["PROXIMA_LLEGADA_ASCENSOR"]
+
+    fin_descenso = (
+        truncar(reloj + p * parametros["tiempo_descenso_d"], 2)
+        if estado_ascensor == "esperando_descenso" and p is not None
+        else None
+    )
     fin_espera = None
     inicio_detencion = reloj if estado_ascensor != "en_movimiento" else None
     cola_baja, cola_sube, cuantos_suben = calcular_cola(
@@ -25,12 +54,25 @@ def simular_llegada_ascensor(estado_anterior, parametros, reloj):
         estado_anterior["COLA_BAJA"],
         estado_anterior["COLA_SUBE"],
     )
-    fin_ascenso = reloj + parametros["tiempo_ascenso_a"] * cuantos_suben if estado_ascensor == "esperando_ascenso" and p is not None else None
-    acumulador_permanencia = estado_anterior["ACUMULADOR_PERMANENCIA"] + reloj - estado_anterior["RELOJ"] if estado_ascensor == "en_movimiento" else estado_anterior["ACUMULADOR_PERMANENCIA"]
+    if cuantos_suben > 0:
+        espacio_disponible -= cuantos_suben
+    fin_ascenso = (
+        truncar(reloj + parametros["tiempo_ascenso_a"] * cuantos_suben, 2)
+        if estado_ascensor == "esperando_ascenso" and cuantos_suben > 0
+        else None
+    )
+    if estado_ascensor == "en_movimiento":
+        acumulador_permanencia = truncar(
+            estado_anterior["ACUMULADOR_PERMANENCIA"] + reloj - estado_anterior["RELOJ"],
+            2,
+        )
+    else:
+        acumulador_permanencia = estado_anterior["ACUMULADOR_PERMANENCIA"]
 
     return {
         "EVENTO": evento,
         "RELOJ": reloj,
+        **aleatorios,
         "H": h,
         "P": p,
         "PROXIMA_LLEGADA_ASCENSOR": proxima_llegada_ascensor,
@@ -47,14 +89,9 @@ def simular_llegada_ascensor(estado_anterior, parametros, reloj):
         "ACUMULADOR_PERMANENCIA": acumulador_permanencia,
     }
 
+
 def calcular_cola(estado_ascensor, direccion_ascensor, espacio_disponible, cola_baja, cola_sube):
     cuantos_suben = 0
-    """
-    Si el estado_ascensor es esperando_ascenso, bajan de la cola de esa dirección
-    la cantidad que realmente puede subir: min(cola, espacio_disponible).
-    Si no, las colas quedan igual.
-    Devuelve: (cola_baja, cola_sube)
-    """
     if estado_ascensor != "esperando_ascenso":
         return cola_baja, cola_sube, cuantos_suben
 
@@ -67,12 +104,6 @@ def calcular_cola(estado_ascensor, direccion_ascensor, espacio_disponible, cola_
 
 
 def definir_estado(p, espacio_disponible, cola_baja, cola_sube, direccion_ascensor):
-    """
-    - Si P > 0 → alguien desciende → esperando_descenso
-    - Si P es None (H=0) o P = 0 → nadie desciende; ¿hay quien ascienda?
-        sí → esperando_ascenso
-        no → en_movimiento (el ascensor no para)
-    """
     if p is not None and p > 0:
         return "esperando_descenso"
 
@@ -81,4 +112,3 @@ def definir_estado(p, espacio_disponible, cola_baja, cola_sube, direccion_ascens
         return "esperando_ascenso"
 
     return "en_movimiento"
-

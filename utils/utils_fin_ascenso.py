@@ -1,3 +1,5 @@
+from distribuciones import truncar, campos_aleatorios_vacios
+
 
 def simular_fin_ascenso(estado_anterior, parametros, reloj):
     """
@@ -6,16 +8,17 @@ def simular_fin_ascenso(estado_anterior, parametros, reloj):
     evento = "fin_ascenso"
     reloj = estado_anterior["FIN_ASCENSO"]
     h = estado_anterior["H"]
-    # Si H = 0 no hay nadie a bordo → P no se calcula
     p = estado_anterior["P"]
     direccion_ascensor = estado_anterior["DIRECCION_ASCENSOR"]
     estado_ascensor = "esperando"
     proxima_llegada_ascensor = estado_anterior["PROXIMA_LLEGADA_ASCENSOR"]
     proxima_llegada_pasajero = estado_anterior["PROXIMA_LLEGADA_PASAJERO"]
-    espacio_disponible = parametros["capacidad"] - (h - p) if p  is not None else parametros["capacidad"]
+    espacio_disponible = (
+        parametros["capacidad"] - (h - p) if p is not None else parametros["capacidad"]
+    )
     fin_descenso = None
     fin_ascenso = None
-    fin_espera = reloj + parametros["tiempo_espera_e"]
+    fin_espera = truncar(reloj + parametros["tiempo_espera_e"], 2)
     inicio_detencion = estado_anterior["INICIO_DETENCION"]
     cola_baja = estado_anterior["COLA_BAJA"]
     cola_sube = estado_anterior["COLA_SUBE"]
@@ -24,6 +27,7 @@ def simular_fin_ascenso(estado_anterior, parametros, reloj):
     return {
         "EVENTO": evento,
         "RELOJ": reloj,
+        **campos_aleatorios_vacios(),
         "H": h,
         "P": p,
         "PROXIMA_LLEGADA_ASCENSOR": proxima_llegada_ascensor,

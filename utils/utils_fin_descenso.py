@@ -1,3 +1,6 @@
+from distribuciones import truncar, campos_aleatorios_vacios
+
+
 def simular_fin_descenso(estado_anterior, parametros, reloj):
     """
     Simula el fin de descenso de un ascensor.
@@ -5,24 +8,72 @@ def simular_fin_descenso(estado_anterior, parametros, reloj):
     evento = "fin_descenso"
     reloj = estado_anterior["FIN_DESCENSO"]
     h = estado_anterior["H"]
-    # Si H = 0 no hay nadie a bordo → P no se calcula, es None
-    p = estado_anterior["P"] 
+    p = estado_anterior["P"]
     direccion_ascensor = estado_anterior["DIRECCION_ASCENSOR"]
-    estado_ascensor = definir_estado(estado_anterior["ESPACIO_DISPONIBLE"], estado_anterior["COLA_BAJA"], estado_anterior["COLA_SUBE"], estado_anterior["DIRECCION_ASCENSOR"])
+    espacio_disponible = (
+        parametros["capacidad"] - (h - p) if p is not None else parametros["capacidad"]
+    )
+    estado_ascensor = definir_estado(
+        espacio_disponible,
+        estado_anterior["COLA_BAJA"],
+        estado_anterior["COLA_SUBE"],
+        estado_anterior["DIRECCION_ASCENSOR"],
+    )
     proxima_llegada_ascensor = estado_anterior["PROXIMA_LLEGADA_ASCENSOR"]
     proxima_llegada_pasajero = estado_anterior["PROXIMA_LLEGADA_PASAJERO"]
-    espacio_disponible = parametros["capacidad"] - (h - p) if p is not None else parametros["capacidad"]
     fin_descenso = None
-    fin_ascenso = reloj + parametros["tiempo_ascenso_a"] * calcular_numero_de_ascensos(estado_anterior["COLA_BAJA"], estado_anterior["COLA_SUBE"], espacio_disponible, estado_anterior["DIRECCION_ASCENSOR"]) if estado_ascensor == "esperando_ascenso"  and p is not None else None
-    fin_espera = calcular_fin_espera(p,reloj, estado_anterior["COLA_BAJA"], estado_anterior["COLA_SUBE"], estado_anterior["ESPACIO_DISPONIBLE"], estado_anterior["DIRECCION_ASCENSOR"], parametros)
+    cuantos_suben = (
+        calcular_numero_de_ascensos(
+            estado_anterior["COLA_BAJA"],
+            estado_anterior["COLA_SUBE"],
+            espacio_disponible,
+            direccion_ascensor,
+        )
+        if estado_ascensor == "esperando_ascenso"
+        else 0
+    )
+    fin_ascenso = (
+        truncar(reloj + parametros["tiempo_ascenso_a"] * cuantos_suben, 2)
+        if estado_ascensor == "esperando_ascenso" and cuantos_suben > 0
+        else None
+    )
+    fin_espera = calcular_fin_espera(
+        reloj,
+        estado_anterior["COLA_BAJA"],
+        estado_anterior["COLA_SUBE"],
+        espacio_disponible,
+        direccion_ascensor,
+        parametros,
+    )
     inicio_detencion = estado_anterior["INICIO_DETENCION"]
-    cola_baja = calcular_colas(estado_anterior["COLA_BAJA"], estado_anterior["COLA_SUBE"], espacio_disponible, estado_anterior["DIRECCION_ASCENSOR"]) if (estado_anterior["DIRECCION_ASCENSOR"] == "baja" and estado_ascensor == "esperando_ascenso") else estado_anterior["COLA_BAJA"]
-    cola_sube = calcular_colas(estado_anterior["COLA_BAJA"], estado_anterior["COLA_SUBE"], espacio_disponible, estado_anterior["DIRECCION_ASCENSOR"]) if (estado_anterior["DIRECCION_ASCENSOR"] == "sube" and estado_ascensor == "esperando_ascenso") else estado_anterior["COLA_SUBE"]
+    cola_baja = (
+        calcular_colas(
+            estado_anterior["COLA_BAJA"],
+            estado_anterior["COLA_SUBE"],
+            espacio_disponible,
+            direccion_ascensor,
+        )
+        if (direccion_ascensor == "baja" and estado_ascensor == "esperando_ascenso")
+        else estado_anterior["COLA_BAJA"]
+    )
+    cola_sube = (
+        calcular_colas(
+            estado_anterior["COLA_BAJA"],
+            estado_anterior["COLA_SUBE"],
+            espacio_disponible,
+            direccion_ascensor,
+        )
+        if (direccion_ascensor == "sube" and estado_ascensor == "esperando_ascenso")
+        else estado_anterior["COLA_SUBE"]
+    )
+    if cuantos_suben > 0:
+        espacio_disponible -= cuantos_suben
     acumulador_permanencia = estado_anterior["ACUMULADOR_PERMANENCIA"]
 
     return {
         "EVENTO": evento,
         "RELOJ": reloj,
+        **campos_aleatorios_vacios(),
         "H": h,
         "P": p,
         "PROXIMA_LLEGADA_ASCENSOR": proxima_llegada_ascensor,
@@ -46,11 +97,11 @@ def calcular_numero_de_ascensos(cola_baja, cola_sube, espacio_disponible, direcc
         return min(cola_sube, espacio_disponible)
     return min(cola_baja, espacio_disponible)
 
-def calcular_fin_espera(p, reloj, cola_baja, cola_sube, espacio_disponible, direccion_ascensor, parametros):
+def calcular_fin_espera(reloj, cola_baja, cola_sube, espacio_disponible, direccion_ascensor, parametros):
     nro_ascensos = calcular_numero_de_ascensos(cola_baja, cola_sube, espacio_disponible, direccion_ascensor)
     if nro_ascensos > 0:
         return None
-    return reloj + parametros["tiempo_espera_e"]
+    return truncar(reloj + parametros["tiempo_espera_e"], 2)
 
 def definir_estado(espacio_disponible, cola_baja, cola_sube, direccion_ascensor):
     nro_ascensos = calcular_numero_de_ascensos(cola_baja, cola_sube, espacio_disponible, direccion_ascensor)

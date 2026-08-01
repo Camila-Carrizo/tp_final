@@ -1,18 +1,29 @@
-from distribuciones import uniforme_entero, exponencial, uniforme
+from distribuciones import uniforme, truncar, campos_aleatorios_vacios
 
 
 def simular_fin_espera(estado_anterior, parametros, reloj):
     """
     Simula el fin de espera de un ascensor.
+    Sorteo: RND_LLEGADA_ASCENSOR → LLEGADA_ASCENSOR → PROXIMA_LLEGADA_ASCENSOR
     """
     evento = "fin_espera"
     reloj = estado_anterior["FIN_ESPERA"]
     h = estado_anterior["H"]
-    # Si H = 0 no hay nadie a bordo → P no se calcula
     p = estado_anterior["P"]
-    direccion_ascensor = "sube" if estado_anterior["DIRECCION_ASCENSOR"] == "baja" else "baja"
+    direccion_ascensor = (
+        "sube" if estado_anterior["DIRECCION_ASCENSOR"] == "baja" else "baja"
+    )
     estado_ascensor = "en_movimiento"
-    proxima_llegada_ascensor = reloj + uniforme(parametros["viaje_min"], parametros["viaje_max"])
+
+    aleatorios = campos_aleatorios_vacios()
+    rnd_viaje, llegada_ascensor = uniforme(
+        parametros["viaje_min"],
+        parametros["viaje_max"],
+    )
+    aleatorios["RND_LLEGADA_ASCENSOR"] = rnd_viaje
+    aleatorios["LLEGADA_ASCENSOR"] = llegada_ascensor
+    proxima_llegada_ascensor = truncar(reloj + llegada_ascensor, 2)
+
     proxima_llegada_pasajero = estado_anterior["PROXIMA_LLEGADA_PASAJERO"]
     espacio_disponible = parametros["capacidad"]
     fin_descenso = None
@@ -21,11 +32,17 @@ def simular_fin_espera(estado_anterior, parametros, reloj):
     inicio_detencion = None
     cola_baja = estado_anterior["COLA_BAJA"]
     cola_sube = estado_anterior["COLA_SUBE"]
-    acumulador_permanencia = estado_anterior["ACUMULADOR_PERMANENCIA"] + reloj - estado_anterior["INICIO_DETENCION"]
+    acumulador_permanencia = truncar(
+        estado_anterior["ACUMULADOR_PERMANENCIA"]
+        + reloj
+        - estado_anterior["INICIO_DETENCION"],
+        2,
+    )
 
     return {
         "EVENTO": evento,
         "RELOJ": reloj,
+        **aleatorios,
         "H": h,
         "P": p,
         "PROXIMA_LLEGADA_ASCENSOR": proxima_llegada_ascensor,
@@ -41,6 +58,3 @@ def simular_fin_espera(estado_anterior, parametros, reloj):
         "COLA_SUBE": cola_sube,
         "ACUMULADOR_PERMANENCIA": acumulador_permanencia,
     }
-
-
-

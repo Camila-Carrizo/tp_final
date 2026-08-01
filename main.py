@@ -1,17 +1,14 @@
 """
 main.py
 -------
-Arranca el programa.
+Arranca la UI: el usuario carga parámetros y después se ejecuta la simulación.
 """
 
-from simulador import ejecutar
+from ui import lanzar_interfaz
 
 
 def main() -> None:
-    estado = ejecutar()
-    print("Fila inicial:")
-    for clave, valor in estado.items():
-        print(f"  {clave}: {valor}")
+    lanzar_interfaz()
 
 
 if __name__ == "__main__":
