@@ -10,21 +10,21 @@ def simular_llegada_ascensor(estado_anterior, parametros, reloj):
     h = uniforme_entero(0, parametros["capacidad"])
     # Si H = 0 no hay nadie a bordo → P no se calcula
     p = uniforme_entero(0, h) if h > 0 else None
-    direccion_ascensor = "sube" if estado_anterior["DIRECCION_ASCENSOR"] == "baja" else "baja"
-    estado_ascensor = definir_estado()
-    proxima_llegada_ascensor = reloj + uniforme(0, parametros["viaje_min"], parametros["viaje_max"]) if estado_ascensor == "en_movimiento" else estado_anterior["PROXIMA_LLEGADA_ASCENSOR"]
+    direccion_ascensor = estado_anterior["DIRECCION_ASCENSOR"]
+    proxima_llegada_ascensor = reloj + uniforme(parametros["viaje_min"], parametros["viaje_max"]) if estado_ascensor == "en_movimiento" else estado_anterior["PROXIMA_LLEGADA_ASCENSOR"]
     proxima_llegada_pasajero = estado_anterior["PROXIMA_LLEGADA_PASAJERO"]
     espacio_disponible = parametros["capacidad"] - h
-    fin_descenso = reloj + p * parametros["tiempo_descenso_d"] if estado_ascensor == "esperando_descenso" else None
-    fin_ascenso = reloj + p * parametros["tiempo_ascenso_d"] if estado_ascensor == "esperando_ascenso" else None
+    estado_ascensor = definir_estado(p, espacio_disponible, estado_anterior["COLA_BAJA"], estado_anterior["COLA_SUBE"], estado_anterior["DIRECCION_ASCENSOR"])
+    fin_descenso = reloj + p * parametros["tiempo_descenso_d"] if estado_ascensor == "esperando_descenso" and p else None
+    fin_ascenso = reloj + p * parametros["tiempo_ascenso_a"] if estado_ascensor == "esperando_ascenso" and p else None
     fin_espera = None
     inicio_detencion = reloj if estado_ascensor != "en_movimiento" else None
     cola_baja, cola_sube = calcular_cola(
-        estado_ascensor,
-        direccion_ascensor,
+        estado_anterior["ESTADO_ASCENSOR"],
+        estado_anterior["DIRECCION_ASCENSOR"],
         espacio_disponible,
-        estado_anterior["cola_baja"],
-        estado_anterior["cola_sube"],
+        estado_anterior["COLA_BAJA"],
+        estado_anterior["COLA_SUBE"],
     )
     acumulador_permanencia = estado_anterior["ACUMULADOR_PERMANENCIA"] + reloj - estado_anterior["RELOJ"] if estado_ascensor == "en_movimiento" else estado_anterior["ACUMULADOR_PERMANENCIA"]
 

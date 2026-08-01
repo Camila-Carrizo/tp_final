@@ -35,7 +35,7 @@ def exponencial(media: float, rng: random.Random | None = None) -> float:
     return _rng(rng).expovariate(1.0 / media)
 
 
-def direccion_pasajero(
+def definir_direccion_pasajero(
     probabilidad_bajar: float = 0.7,
     rng: random.Random | None = None,
 ) -> str:

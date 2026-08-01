@@ -1,5 +1,4 @@
-from calendar import c
-from distribuciones import uniforme_entero, exponencial, uniforme
+from distribuciones import exponencial, definir_direccion_pasajero
 
 
 def simular_llegada_pasajero(estado_anterior, parametros, reloj):
@@ -18,7 +17,7 @@ def simular_llegada_pasajero(estado_anterior, parametros, reloj):
     fin_descenso = estado_anterior["FIN_DESCENSO"]
     inicio_detencion = estado_anterior["INICIO_DETENCION"]
     acumulador_permanencia = estado_anterior["ACUMULADOR_PERMANENCIA"]
-    cola_baja, cola_sube, fin_espera, fin_ascenso, estado_ascensor = calcular_cola_tiempos_estados(estado_anterior["ESPACIO_DISPONIBLE"], estado_anterior["COLA_BAJA"], estado_anterior["COLA_SUBE"], estado_anterior["FIN_ASCENSO"], estado_anterior["FIN_ESPERA"], estado_ascensor, reloj, parametros, estado_anterior["DIRECCION_ASCENSOR"])
+    cola_baja, cola_sube, fin_espera, fin_ascenso, estado_ascensor = calcular_cola_tiempos_estados(estado_anterior["ESPACIO_DISPONIBLE"], estado_anterior["COLA_BAJA"], estado_anterior["COLA_SUBE"], estado_anterior["FIN_ASCENSO"], estado_anterior["FIN_ESPERA"], estado_anterior["ESTADO_ASCENSOR"], reloj, parametros, estado_anterior["DIRECCION_ASCENSOR"])
 
     return {
         "EVENTO": evento,
@@ -57,12 +56,12 @@ def calcular_cola_tiempos_estados(espacio_disponible, cola_baja, cola_sube, fin_
         fin_espera = reloj + parametros["tiempo_espera_e"]
         estado_ascensor = "esperando_ascenso"
     elif estado_ascensor == "esperando_ascenso" and accedio_al_ascensor:
-        fin_ascenso = reloj + (fin_ascenso - reloj) + parametros["tiempo_espera_a"]	
+        fin_ascenso = reloj + (fin_ascenso - reloj) + parametros["tiempo_espera_e"]	
 
     return cola_baja, cola_sube, fin_espera, fin_ascenso, estado_ascensor
 
 def accedio_al_ascensor(direccion_ascensor, espacio_disponible):
-    direccion_pasajero = direccion_pasajero()
+    direccion_pasajero = definir_direccion_pasajero()
     if (direccion_pasajero != direccion_ascensor) or (direccion_pasajero == direccion_ascensor and espacio_disponible <= 0):
         return direccion_pasajero, False
     if direccion_pasajero == direccion_ascensor and espacio_disponible > 0:

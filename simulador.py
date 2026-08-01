@@ -13,7 +13,7 @@ import random
 from parametros import crear_parametros
 from distribuciones import uniforme, uniforme_entero, exponencial
 from utils.utils_llegada_ascensor import simular_llegada_ascensor
-from utils.utils_llegada_pasajero import simular_llegada_pasajero
+from utils.utils_llegada_pasajeros import simular_llegada_pasajero
 from utils.utils_fin_descenso import simular_fin_descenso
 from utils.utils_fin_ascenso import simular_fin_ascenso
 from utils.utils_fin_espera import simular_fin_espera
@@ -35,12 +35,9 @@ def ejecutar():
         if i == 0:
             estado_actual = armar_estado_inicial(parametros)
         else:
+            estado_anterior = estado_actual
             estado_actual = armar_estado_actual(estado_anterior, parametros)
-
-    # Por ahora solo dejamos armada la fila inicial.
-    # Después: loop que mira el estado_actual, arma uno nuevo y hace
-    #   estado_anterior = estado_actual
-    #   estado_actual = nuevo
+            
     return estado_actual
 
 def determinar_proximo_evento(estado_actual):
