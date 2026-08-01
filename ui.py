@@ -23,6 +23,13 @@ from simulador import ejecutar
 RUTA_EXCEL_DEFAULT = Path(__file__).resolve().parent / "salida" / "simulacion.xlsx"
 
 
+def _mostrar_celda(valor) -> str:
+    """None / vacío → '-' en la grilla."""
+    if valor is None or valor == "" or valor == "None":
+        return "-"
+    return str(valor)
+
+
 def lanzar_interfaz(ruta_excel: str | Path | None = None) -> None:
     """Abre la ventana: formulario de parámetros + tabla de resultados."""
     App(ruta_excel_inicial=ruta_excel).run()
@@ -55,9 +62,7 @@ class App:
 
         self._build_form(form, defaults)
         self._build_resultados(resultados)
-
-        if self.ruta_excel.exists():
-            self._cargar_excel(self.ruta_excel)
+        # No cargar ni simular al abrir: solo al apretar "Ejecutar simulación"
 
     def _build_form(self, parent: ttk.LabelFrame, defaults: dict) -> None:
         # --- Simulación ---
@@ -260,7 +265,11 @@ class App:
             return
         filas = leer_filas(ruta)
         for fila in filas:
-            self.tree.insert("", tk.END, values=[fila.get(col, "") for col in COLUMNAS])
+            self.tree.insert(
+                "",
+                tk.END,
+                values=[_mostrar_celda(fila.get(col)) for col in COLUMNAS],
+            )
         self.lbl_ruta.configure(text=f"{ruta}  ({len(filas)} filas)")
 
     def _abrir_excel(self) -> None:
