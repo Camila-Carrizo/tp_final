@@ -246,6 +246,10 @@ class App:
             return
 
         self.lbl_estado.configure(text="Simulando...")
+        # Limpiar tabla mientras corre (el Excel viejo se borra al crear el nuevo)
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        self.lbl_ruta.configure(text="Generando Excel...")
         self.root.update_idletasks()
 
         try:

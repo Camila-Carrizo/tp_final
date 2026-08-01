@@ -45,6 +45,9 @@ class EscritorExcel:
 
     def __init__(self, ruta_archivo: str | Path):
         self.ruta = Path(ruta_archivo)
+        # Cada corrida arranca de cero: borra el Excel anterior si existe
+        if self.ruta.exists():
+            self.ruta.unlink()
         self.wb = Workbook()
         self.ws = self.wb.active
         self.ws.title = "Simulacion"
