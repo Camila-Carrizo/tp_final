@@ -7,3 +7,12 @@
 *.xlsm
 *.xlsb
 *.csv
+.~lock.*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Salida de corridas
+salida/

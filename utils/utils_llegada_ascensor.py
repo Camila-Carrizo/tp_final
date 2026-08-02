@@ -29,6 +29,8 @@ def simular_llegada_ascensor(estado_anterior, parametros, reloj):
         estado_anterior["DIRECCION_ASCENSOR"],
     )
 
+    # Solo si nadie sube ni baja sigue de largo → nueva llegada.
+    # Si para (descenso o ascenso), la próxima llega en fin_espera.
     if estado_ascensor == "en_movimiento":
         rnd_viaje, llegada_ascensor = uniforme(
             parametros["viaje_min"],
@@ -38,7 +40,7 @@ def simular_llegada_ascensor(estado_anterior, parametros, reloj):
         aleatorios["LLEGADA_ASCENSOR"] = llegada_ascensor
         proxima_llegada_ascensor = truncar(reloj + llegada_ascensor, 2)
     else:
-        proxima_llegada_ascensor = estado_anterior["PROXIMA_LLEGADA_ASCENSOR"]
+        proxima_llegada_ascensor = None
 
     fin_descenso = (
         truncar(reloj + p * parametros["tiempo_descenso_d"], 2)
