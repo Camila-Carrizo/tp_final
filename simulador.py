@@ -173,9 +173,8 @@ def armar_estado_inicial(parametros):
                 cola_sube -= cuantos_suben
             else:
                 cola_baja -= cuantos_suben
-
-            h_actual = h + cuantos_suben
-            espacio = parametros["capacidad"] - h_actual
+                
+            espacio -= cuantos_suben
         else:
             inicio_detencion = None
             estado_ascensor = "en_movimiento"
