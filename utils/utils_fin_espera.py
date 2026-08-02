@@ -8,8 +8,8 @@ def simular_fin_espera(estado_anterior, parametros, reloj):
     """
     evento = "fin_espera"
     reloj = estado_anterior["FIN_ESPERA"]
-    h = estado_anterior["H"]
-    p = estado_anterior["P"]
+    h = None
+    p = None
     direccion_ascensor = (
         "sube" if estado_anterior["DIRECCION_ASCENSOR"] == "baja" else "baja"
     )

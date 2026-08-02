@@ -13,9 +13,7 @@ def simular_fin_ascenso(estado_anterior, parametros, reloj):
     estado_ascensor = "esperando"
     proxima_llegada_ascensor = estado_anterior["PROXIMA_LLEGADA_ASCENSOR"]
     proxima_llegada_pasajero = estado_anterior["PROXIMA_LLEGADA_PASAJERO"]
-    espacio_disponible = (
-        parametros["capacidad"] - (h - p) if p is not None else parametros["capacidad"]
-    )
+    espacio_disponible = estado_anterior["ESPACIO_DISPONIBLE"]
     fin_descenso = None
     fin_ascenso = None
     fin_espera = truncar(reloj + parametros["tiempo_espera_e"], 2)
@@ -43,3 +41,5 @@ def simular_fin_ascenso(estado_anterior, parametros, reloj):
         "COLA_SUBE": cola_sube,
         "ACUMULADOR_PERMANENCIA": acumulador_permanencia,
     }
+
+
