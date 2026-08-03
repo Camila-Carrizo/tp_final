@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
@@ -30,6 +31,10 @@ RUTA_EXCEL_DEFAULT = Path(__file__).resolve().parent / "salida" / "simulacion.xl
 # ~ px por carácter en Segoe UI 8 + padding
 PX_POR_CHAR = 8
 PADDING_COL_PX = 24
+# ttk.Treeview se congela con demasiadas filas; el Excel igual tiene todo el rango
+MAX_FILAS_UI = 2000
+LOTE_UI = 80
+SPINNER_FRAMES = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
 
 
 def _ancho_px(clave: str) -> int:
@@ -56,6 +61,9 @@ class App:
         self.ruta_excel = Path(ruta_excel_inicial) if ruta_excel_inicial else RUTA_EXCEL_DEFAULT
         self.vars: dict[str, tk.Variable] = {}
         self.entries: dict[str, ttk.Entry] = {}
+        self._simulando = False
+        self._spinner_after_id = None
+        self._spinner_idx = 0
         self._build()
 
     def run(self) -> None:
@@ -83,10 +91,12 @@ class App:
         g1.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=(0, 8))
 
         self._campo(g1, 0, "cantidad_eventos", "Cantidad de eventos", defaults["cantidad_eventos"])
-        self._campo(g1, 1, "semilla", "Semilla (vacío = aleatorio)", defaults["semilla"] or "")
+        self._campo(g1, 1, "mostrar_desde", "Mostrar desde fila", defaults["mostrar_desde"])
+        self._campo(g1, 2, "mostrar_hasta", "Mostrar hasta fila", defaults["mostrar_hasta"])
+        self._campo(g1, 3, "semilla", "Semilla (vacío = aleatorio)", defaults["semilla"] or "")
 
         # --- Ascensor / tiempos ---
-        g2 = ttk.LabelFrame(parent, text="Ascensor y tiempos (segundos)", padding=8)
+        g2 = ttk.LabelFrame(parent, text="Distribuciones (segundos)", padding=8)
         g2.grid(row=0, column=1, sticky="nsew", padx=(0, 8), pady=(0, 8))
 
         self._campo(g2, 0, "capacidad", "Capacidad", defaults["capacidad"])
@@ -129,14 +139,21 @@ class App:
         acciones = ttk.Frame(parent)
         acciones.grid(row=1, column=0, columnspan=3, sticky="ew")
 
-        ttk.Button(acciones, text="Restaurar defaults", command=self._restaurar_defaults).pack(
-            side=tk.LEFT
+        self.btn_defaults = ttk.Button(
+            acciones, text="Restaurar defaults", command=self._restaurar_defaults
         )
-        ttk.Button(acciones, text="Ejecutar simulación", command=self._ejecutar).pack(
-            side=tk.RIGHT, padx=(8, 0)
+        self.btn_defaults.pack(side=tk.LEFT)
+        self.btn_ejecutar = ttk.Button(
+            acciones, text="Ejecutar simulación", command=self._ejecutar
         )
-        ttk.Button(acciones, text="Abrir Excel", command=self._abrir_excel).pack(side=tk.RIGHT)
+        self.btn_ejecutar.pack(side=tk.RIGHT, padx=(8, 0))
+        self.btn_abrir_excel = ttk.Button(
+            acciones, text="Abrir Excel", command=self._abrir_excel
+        )
+        self.btn_abrir_excel.pack(side=tk.RIGHT)
 
+        self.lbl_spinner = ttk.Label(acciones, text="", width=2)
+        self.lbl_spinner.pack(side=tk.RIGHT, padx=(4, 0))
         self.lbl_estado = ttk.Label(acciones, text="")
         self.lbl_estado.pack(side=tk.RIGHT, padx=12)
 
@@ -250,6 +267,8 @@ class App:
         """Arma el dict compatible con crear_parametros / ejecutar."""
         etiquetas = {
             "cantidad_eventos": "Cantidad de eventos",
+            "mostrar_desde": "Mostrar desde fila",
+            "mostrar_hasta": "Mostrar hasta fila",
             "semilla": "Semilla",
             "capacidad": "Capacidad",
             "tiempo_espera_e": "Tiempo espera E",
@@ -319,6 +338,14 @@ class App:
             semilla = int(semilla_f)
 
         cantidad_eventos = entero("cantidad_eventos", minimo=1)
+        mostrar_desde = entero("mostrar_desde", minimo=1)
+        mostrar_hasta = entero("mostrar_hasta", minimo=1)
+        if mostrar_desde > mostrar_hasta:
+            raise ValueError("Mostrar desde no puede ser mayor que mostrar hasta")
+        if mostrar_hasta > cantidad_eventos:
+            raise ValueError(
+                "Mostrar hasta no puede ser mayor que la cantidad de eventos"
+            )
         capacidad = entero("capacidad", minimo=1)
 
         tiempo_espera_e = flotante("tiempo_espera_e", minimo=0, minimo_estricto=True)
@@ -354,6 +381,8 @@ class App:
 
         return crear_parametros(
             cantidad_eventos=cantidad_eventos,
+            mostrar_desde=mostrar_desde,
+            mostrar_hasta=mostrar_hasta,
             capacidad=capacidad,
             tiempo_espera_e=tiempo_espera_e,
             tiempo_descenso_d=tiempo_descenso_d,
@@ -369,7 +398,35 @@ class App:
             semilla=semilla,
         )
 
+    def _set_ui_ocupada(self, ocupada: bool) -> None:
+        estado = tk.DISABLED if ocupada else tk.NORMAL
+        self.btn_ejecutar.configure(state=estado)
+        self.btn_defaults.configure(state=estado)
+        self.btn_abrir_excel.configure(state=estado)
+        if ocupada:
+            self._iniciar_spinner()
+        else:
+            self._detener_spinner()
+
+    def _iniciar_spinner(self) -> None:
+        self._detener_spinner()
+        self._spinner_idx = 0
+        self._tick_spinner()
+
+    def _tick_spinner(self) -> None:
+        self.lbl_spinner.configure(text=SPINNER_FRAMES[self._spinner_idx])
+        self._spinner_idx = (self._spinner_idx + 1) % len(SPINNER_FRAMES)
+        self._spinner_after_id = self.root.after(80, self._tick_spinner)
+
+    def _detener_spinner(self) -> None:
+        if self._spinner_after_id is not None:
+            self.root.after_cancel(self._spinner_after_id)
+            self._spinner_after_id = None
+        self.lbl_spinner.configure(text="")
+
     def _ejecutar(self) -> None:
+        if self._simulando:
+            return
         try:
             parametros = self._leer_parametros()
         except ValueError as exc:
@@ -379,23 +436,97 @@ class App:
             messagebox.showerror("Parámetros inválidos", f"Revisá los valores.\n{exc}")
             return
 
+        self._simulando = True
+        self._set_ui_ocupada(True)
         self.lbl_estado.configure(text="Simulando...")
-        # Limpiar tabla mientras corre (el Excel viejo se borra al crear el nuevo)
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+        hijos = self.tree.get_children()
+        if hijos:
+            self.tree.delete(*hijos)
         self.lbl_ruta.configure(text="Generando Excel...")
         self.lbl_permanencia.configure(text="TIEMPO DE PERMANENCIA EN PISO 15: —")
-        self.root.update_idletasks()
 
+        ruta_excel = self.ruta_excel
+
+        def worker() -> None:
+            try:
+                estado, ruta = ejecutar(parametros=parametros, ruta_excel=ruta_excel)
+                # Leer Excel acá (hilo) para no congelar la UI
+                filas = leer_filas(ruta) if ruta else []
+                self.root.after(
+                    0, lambda: self._fin_simulacion_ok(estado, ruta, filas)
+                )
+            except Exception as exc:
+                self.root.after(0, lambda e=exc: self._fin_simulacion_error(e))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _fin_simulacion_ok(self, estado: dict, ruta, filas: list) -> None:
         try:
-            estado, ruta = ejecutar(parametros=parametros, ruta_excel=self.ruta_excel)
             self.ruta_excel = Path(ruta) if ruta else self.ruta_excel
-            self._cargar_excel(self.ruta_excel)
             self._mostrar_permanencia(estado.get("ACUMULADOR_PERMANENCIA"))
-            self.lbl_estado.configure(text=f"Listo — {self.ruta_excel.name}")
+            self.lbl_estado.configure(text="Cargando tabla...")
+            self._iniciar_carga_tabla(filas)
         except Exception as exc:
-            messagebox.showerror("Error en la simulación", str(exc))
+            messagebox.showerror("Error al cargar resultados", str(exc))
             self.lbl_estado.configure(text="Error")
+            self._simulando = False
+            self._set_ui_ocupada(False)
+
+    def _fin_simulacion_error(self, exc: Exception) -> None:
+        messagebox.showerror("Error en la simulación", str(exc))
+        self.lbl_estado.configure(text="Error")
+        self._simulando = False
+        self._set_ui_ocupada(False)
+
+    def _iniciar_carga_tabla(self, filas: list) -> None:
+        """Inserta filas en lotes para que la ventana no deje de responder."""
+        hijos = self.tree.get_children()
+        if hijos:
+            self.tree.delete(*hijos)
+
+        total_excel = len(filas)
+        if total_excel > MAX_FILAS_UI:
+            messagebox.showinfo(
+                "Muchas filas",
+                f"El Excel tiene {total_excel} filas.\n"
+                f"Solo se muestran las últimas {MAX_FILAS_UI}.",
+            )
+            filas = filas[-MAX_FILAS_UI:]
+
+        self._filas_carga = filas
+        self._filas_carga_idx = 0
+        self._filas_carga_total_excel = total_excel
+        self._insertar_lote_tabla()
+
+    def _insertar_lote_tabla(self) -> None:
+        filas = self._filas_carga
+        inicio = self._filas_carga_idx
+        fin = min(inicio + LOTE_UI, len(filas))
+        for i in range(inicio, fin):
+            fila = filas[i]
+            self.tree.insert(
+                "",
+                tk.END,
+                values=[_mostrar_celda(fila.get(col)) for col in COLUMNAS],
+            )
+        self._filas_carga_idx = fin
+
+        if fin < len(filas):
+            self.lbl_estado.configure(text=f"Cargando tabla... {fin}/{len(filas)}")
+            self.root.after(1, self._insertar_lote_tabla)
+            return
+
+        mostradas = len(filas)
+        total = self._filas_carga_total_excel
+        if mostradas < total:
+            self.lbl_ruta.configure(
+                text=f"{self.ruta_excel}  (últimas {mostradas} en tabla / {total} en Excel)"
+            )
+        else:
+            self.lbl_ruta.configure(text=f"{self.ruta_excel}  ({total} filas)")
+        self.lbl_estado.configure(text=f"Listo — {self.ruta_excel.name}")
+        self._simulando = False
+        self._set_ui_ocupada(False)
 
     def _mostrar_permanencia(self, segundos) -> None:
         if segundos is None:
@@ -409,21 +540,6 @@ class App:
                 mostrado = str(valor)
             texto = f"TIEMPO DE PERMANENCIA EN PISO 15: {mostrado} segs"
         self.lbl_permanencia.configure(text=texto)
-
-    def _cargar_excel(self, ruta: Path) -> None:
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-        if not ruta.exists():
-            self.lbl_ruta.configure(text="Sin archivo")
-            return
-        filas = leer_filas(ruta)
-        for fila in filas:
-            self.tree.insert(
-                "",
-                tk.END,
-                values=[_mostrar_celda(fila.get(col)) for col in COLUMNAS],
-            )
-        self.lbl_ruta.configure(text=f"{ruta}  ({len(filas)} filas)")
 
     def _abrir_excel(self) -> None:
         ruta = self.ruta_excel

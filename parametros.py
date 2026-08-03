@@ -16,6 +16,9 @@ def crear_parametros(**overrides):
     p = {
         # Cantidad de eventos a simular
         "cantidad_eventos": 20,
+        # Filas a escribir/mostrar (1 = primera fila / inicialización). Inclusive.
+        "mostrar_desde": 1,
+        "mostrar_hasta": 20,
         # Capacidad del ascensor
         "capacidad": 6,
         # Tiempos constantes (segundos)

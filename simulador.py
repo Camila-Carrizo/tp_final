@@ -36,7 +36,9 @@ def ejecutar(parametros: dict | None = None, ruta_excel: str | Path | None = Non
     """
     Corre la simulación.
     - parametros: si es None, usa crear_parametros().
-    - ruta_excel: si se indica, escribe cada fila al archivo y lo guarda.
+    - ruta_excel: si se indica, escribe al archivo solo las filas
+      [mostrar_desde, mostrar_hasta] (1 = inicialización). Inclusive.
+    - Siempre simula cantidad_eventos; el acumulador final usa el último estado.
     Devuelve: (estado_final, ruta_del_excel | None)
     """
     if parametros is None:
@@ -50,6 +52,8 @@ def ejecutar(parametros: dict | None = None, ruta_excel: str | Path | None = Non
     estado_anterior = {}
     estado_actual = armar_estado_inicial(parametros)
     cantidad_eventos = parametros["cantidad_eventos"]
+    mostrar_desde = parametros.get("mostrar_desde", 1)
+    mostrar_hasta = parametros.get("mostrar_hasta", cantidad_eventos)
 
     for i in range(cantidad_eventos):
         if i == 0:
@@ -58,7 +62,8 @@ def ejecutar(parametros: dict | None = None, ruta_excel: str | Path | None = Non
             estado_anterior = estado_actual
             estado_actual = armar_estado_actual(estado_anterior, parametros)
 
-        if escritor is not None:
+        nro_fila = i + 1  # 1 = inicialización
+        if escritor is not None and mostrar_desde <= nro_fila <= mostrar_hasta:
             escritor.agregar_fila(estado_actual)
 
     ruta_guardada = None
