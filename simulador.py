@@ -98,7 +98,7 @@ def determinar_proximo_evento(estado_actual):
 def armar_estado_inicial(parametros):
     """
     Dos modos:
-      - Con condiciones iniciales (H no es None): como el enunciado / Tp.ods.
+      - Con condiciones iniciales (H no es None): condiciones iniciales. 
       - Sin condiciones (H is None): arranque de cero; colas también None;
         se programan llegada de ascensor Y de pasajero.
     """

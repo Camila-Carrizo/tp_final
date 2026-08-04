@@ -4,13 +4,12 @@ parametros.py
 Números del enunciado.
 
 crear_parametros() devuelve un diccionario con todos los valores.
-Más adelante la UI puede armar el mismo diccionario con lo que cargue el usuario.
 """
 
 
 def crear_parametros(**overrides):
     """
-    Parámetros por defecto del Ejercicio 124.
+    Parámetros por defecto.
     Se pueden pisar valores: crear_parametros(capacidad=8, semilla=1)
     """
     p = {
